@@ -59,7 +59,7 @@ table_content_tbl
 ```{r}
 table_header <- table_content_tbl %>%
     filter(is_header) %>%
-    pull(text)
+    pull(text) %>% head()
 table_header
 ```
 
@@ -83,7 +83,7 @@ lecture_analysis_tbl <- table_content_tbl %>%
 lecture_analysis_tbl %>%
     ggplot(aes(students, lectures_completed)) +
     geom_point(aes(size = activity_ratio)) +
-    geom_smooth(method = "loess", col = 'red') +
+    geom_smooth(method = "loess", col = 'purple', lwd = 2) +
     geom_richtext(
         aes(label = str_glue("___Course: {course}___<br>Ratio: {round(activity_ratio)}")),
         vjust = "inward", hjust = "inward", size = 3.5
