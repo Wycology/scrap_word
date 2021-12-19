@@ -1,0 +1,100 @@
+---
+title: "<center>**Scrapping_MS_Word_docx in R**</center>"
+author: "<center>Wyclife A Oluoch (wyclifeoluoch@gmail.com)</center>"
+date: "<center>`r Sys.time()`</center>"
+bibliography: 
+  - bib/packages.bib
+nocite: '@*'
+output: 
+  html_document:
+    toc: true
+    toc_depth: 2
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r libs, echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
+packages <- c("base",
+              'knitr',
+              'rmarkdown',
+              'tidyverse',
+              'officer',
+              'janitor',
+              'ggtext')
+installed_packages <- packages %in% rownames(installed.packages())
+if(any(installed_packages == FALSE)){
+  install.packages(packages[!installed_packages])
+}
+lapply(packages, library, character.only = TRUE) |> invisible()
+```
+
+```{r write_bib, echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
+knitr::write_bib(c(
+  .packages(), packages
+), 'bib/packages.bib')
+```
+
+# Extract the word contents
+
+```{r}
+doc <- read_docx("Business Science.docx")
+
+content_tbl <- docx_summary(doc) %>% as_tibble()
+
+table_content_tbl <- content_tbl %>%
+    filter(content_type == "table cell")
+
+table_content_tbl
+
+```
+
+# Format the data
+
+## Table headers from the extracted data
+
+```{r}
+table_header <- table_content_tbl %>%
+    filter(is_header) %>%
+    pull(text)
+table_header
+```
+
+## Table contents
+
+```{r}
+lecture_analysis_tbl <- table_content_tbl %>%
+    filter(!is_header) %>%
+    select(text, row_id, cell_id) %>%
+    pivot_wider(names_from = cell_id, values_from = text) %>%
+    select(-row_id) %>%
+    mutate(across(.cols = -1, .fns = parse_number)) %>%
+    set_names(table_header) %>%
+    clean_names() %>%
+    mutate(activity_ratio = lectures_completed / students)
+```
+
+# Visualize results
+
+```{r}
+lecture_analysis_tbl %>%
+    ggplot(aes(students, lectures_completed)) +
+    geom_point(aes(size = activity_ratio)) +
+    geom_smooth(method = "loess", col = 'red') +
+    geom_richtext(
+        aes(label = str_glue("___Course: {course}___<br>Ratio: {round(activity_ratio)}")),
+        vjust = "inward", hjust = "inward", size = 3.5
+    ) +
+    labs(
+        title = "Lessons Completed Vs Students",
+        x = "No. of Students", y = "No. of Lessons Completed"
+    ) +
+    scale_y_continuous(label = scales::comma) +
+    expand_limits(y = 0) +
+    theme_minimal()
+```
+
+# References
